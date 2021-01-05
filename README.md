@@ -6,3 +6,9 @@ Es una práctica de limpieza y análisis de datos hecho en R para la Universitat
 ## Miembros del equipo
 
 La práctica ha sido elaborada por **Adrián López Ibáñez**.
+
+## Miembros del equipo
+
+Puede ver el dataset en: 
+
+https://www.kaggle.com/c/titanic
