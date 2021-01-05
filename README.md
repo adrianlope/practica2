@@ -7,7 +7,7 @@ Es una práctica de limpieza y análisis de datos hecho en R para la Universitat
 
 La práctica ha sido elaborada por **Adrián López Ibáñez**.
 
-## Miembros del equipo
+## Dataset
 
 Puede ver el dataset en: 
 
