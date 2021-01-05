@@ -1,0 +1,162 @@
+---
+title: "Untitled"
+author: "Adrián López Ibáñez"
+date: "5/1/2021"
+output: html_document
+---
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Cargamos los paquetes R que vamos a usar
+library(ggplot2)
+library(dplyr)
+
+# Cargamos el dataset
+titanic <- read.csv('train.csv', header = TRUE)
+head(titanic)
+# Resumen de los datos
+summary(titanic)
+# Asignación factor
+titanic$Survived <- as.factor(titanic$Survived)
+titanic$Pclass <- as.factor(titanic$Pclass)
+titanic$Sex <- as.factor(titanic$Sex)
+titanic$Embarked <- as.factor(titanic$Embarked)
+# Resumen de los datos
+summary(titanic)
+# Selección variables
+titanic <- subset(titanic, select=-c(PassengerId,Name,Ticket,Fare,Cabin))
+summary(titanic)
+#embarcado
+titanic$Embarked[titanic$Embarked==""]<-"S"
+# Número de NA
+colSums(is.na(titanic))
+# Asignación valores media
+titanic$Age[is.na(titanic$Age)] <- mean(titanic$Age,na.rm=T)
+colSums(is.na(titanic))
+# Discretizamos
+titanic["edad_discretizada"] <- cut(titanic$Age, breaks = c(0,10,20,30,40,50,60,70,80,100), labels = c("0-9", "10-19", "20-29", "30-39","40-49","50-59","60-69","70-79","80-89"))
+# Datos discretizados
+head(titanic)
+# Datos extremos
+par(mfrow=c(1,2))
+plot(titanic$Survived)
+plot(titanic$Pclass)
+plot(titanic$Sex)
+plot(titanic$Pclass)
+boxplot(titanic$Age)
+plot(titanic$edad_discretizada)
+boxplot(titanic$SibSp)
+boxplot(titanic$Parch)
+plot(titanic$Embarked)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Exportación de los datos limpios en .csv
+write.csv(titanic, "titanic_clean.csv", row.names = FALSE)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Agrupación por clase
+titanic.primera <- titanic[titanic$Pclass.type == 1]
+titanic.segunda <- titanic[titanic$Pclass.type == 2]
+titanic.tercera <- titanic[titanic$Pclass.type == 3]
+# Agrupación por sexo
+titanic.mujer <- titanic[titanic$Sex.type == "female"]
+titanic.hombre <- titanic[titanic$Sex.type == "male"]
+# Agrupación por edad
+titanic.hasta10 <- titanic[titanic$edad_discretizada.type == "0-9"]
+titanic.hasta20 <- titanic[titanic$edad_discretizada.type == "10-19"]
+titanic.hasta30 <- titanic[titanic$edad_discretizada.type == "20-29"]
+titanic.hasta40 <- titanic[titanic$edad_discretizada.type == "30-39"]
+titanic.hasta50 <- titanic[titanic$edad_discretizada.type == "40-49"]
+titanic.hasta60 <- titanic[titanic$edad_discretizada.type == "50-59"]
+titanic.hasta70 <- titanic[titanic$edad_discretizada.type == "60-69"]
+titanic.hasta80 <- titanic[titanic$edad_discretizada.type == "70-79"]
+titanic.hasta90 <- titanic[titanic$edad_discretizada.type == "80-89"]
+# Agrupación por embarcación
+titanic.cherbourg <- titanic[titanic$Embarked.type == "C"]
+titanic.queenstown <- titanic[titanic$Embarked.type == "Q"]
+titanic.southampton <- titanic[titanic$Embarked.type == "S"]
+
+
+library(nortest)
+
+alpha = 0.05
+col.names = colnames(titanic)
+for (i in 1:ncol(titanic)) {
+  if (i == 1) cat("Variables que no siguen una distribución normal:\n")
+  if (is.integer(titanic[,i]) | is.numeric(titanic[,i])) {
+    p_val = ad.test(titanic[,i])$p.value
+    if (p_val < alpha) {
+      cat(col.names[i])
+      
+      # Format output
+      if (i < ncol(titanic) - 1) cat(", ")
+      if (i %% 3 == 0) cat("\n")
+    }
+  }
+}
+
+
+
+index <- 0.75*nrow(titanic)
+titanic <- titanic[sample(1:nrow(titanic)), ]
+train <- titanic[1:index,]
+test <- titanic[index:nrow(titanic),]
+
+titanic_glm <- glm(Survived ~ Sex, data = train, family = 'binomial')
+summary(titanic_glm)
+
+predict_sex <- predict(titanic_glm,newdata = test,type = 'response') 
+predict_sex <- ifelse(predict_sex>0.5,1,0)
+error <- mean(predict_sex!=test$Survived)
+exactitud <- 1-error
+exactitud 
+
+titanic_completo <- glm(Survived~., data=train, family = binomial)
+summary(titanic_completo)
+
+set.seed(42)
+
+library(rpart)
+library(rpart.plot)
+fit <- rpart(Survived~., data = train, method = 'class')
+rpart.plot(fit, extra = 106)
+
+predict_titanic <-predict(fit, test, type = 'class')
+mat_conf <- table(test$Survived, predict_titanic)
+mat_conf
+
+porcentaje_correct <-100 * sum(diag(mat_conf)) / sum(mat_conf)
+print(sprintf("El %% de registros correctamente clasificados es: %.4f %%",porcentaje_correct))
+
+qplot(Sex, data=titanic, fill = Survived)
+tabla_sexo <- table(titanic$Sex, titanic$Survived)
+tabla_sexo
+prop.table(tabla_sexo, margin = 1)
+
+qplot(Pclass, data=titanic, fill = Survived)
+tabla_clase <- table(titanic$Pclass, titanic$Survived)
+tabla_clase
+prop.table(tabla_clase, margin = 1)
+
+qplot(edad_discretizada, data=titanic, fill = Survived)
+tabla_edad <- table(titanic$edad_discretizada, titanic$Survived)
+tabla_edad
+prop.table(tabla_edad, margin = 1)
+
+
+qplot(Embarked, data=titanic, fill = Survived)
+tabla_embarque <- table(titanic$Embarked, titanic$Survived)
+tabla_embarque
+prop.table(tabla_embarque, margin = 1)
+
+tabla_embarque2 <- table(titanic$Embarked, titanic$Pclass)
+tabla_embarque2
+prop.table(tabla_embarque2, margin = 1)
+
+qplot(SibSp, data=titanic, fill = Survived)
+tabla_familia <- table(titanic$SibSp, titanic$Survived)
+tabla_familia
+prop.table(tabla_familia, margin = 1)
+```
